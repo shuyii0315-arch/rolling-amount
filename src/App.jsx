@@ -27,7 +27,7 @@ const CROP = 330; // px of the 864px phone that stay visible
 export default function RollPage() {
   const [raw, setRaw] = useState('');
   const [tried, setTried] = useState(null);
-  const [focus, setFocus] = useState(false);
+  const [focus, setFocus] = useState(RECORD); // the recording shows the caret so it can be seen gliding
   const [z, setZ] = useState(1);
   const run = useRef(0);
   const input = useRef(null);
