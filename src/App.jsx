@@ -157,13 +157,17 @@ function RollingDigits({ value }) {
     const t = setTimeout(() => setItems((cur) => cur.filter((it) => it.state !== 'out')), 260);
     return () => clearTimeout(t);
   }, [value]);
-  // Measure a digit and a dot once, so each column's width can animate (the caret glides with it).
+  // Measure every digit (and the dot) in the real font. Fonts like WeChat Sans have proportional
+  // digits, so each column takes its own digit's width: a 1 stays narrow, a 4 stays wide.
+  // Measured again once web fonts finish loading, so a late font never leaves the fallback's widths.
   const probe = useRef(null);
-  const [w, setW] = useState({ d: 0, dot: 0 });
+  const [w, setW] = useState(null);
   useLayoutEffect(() => {
-    // Layout px, unaffected by the page's scale. Measured again once web fonts finish loading,
-    // otherwise the columns keep the fallback font's (wider) digit width.
-    const measure = () => { const [d, dot] = probe.current.children; setW({ d: d.offsetWidth, dot: dot.offsetWidth }); };
+    const measure = () => {
+      const m = {};
+      for (const el of probe.current.children) m[el.textContent] = el.offsetWidth; // layout px, unaffected by the page's scale
+      setW(m);
+    };
     measure();
     document.fonts?.ready.then(measure);
     document.fonts?.addEventListener('loadingdone', measure);
@@ -171,10 +175,10 @@ function RollingDigits({ value }) {
   }, []);
   const n = items.filter((it) => it.state !== 'out').length;
   return (
-    <span className="digits roll" aria-label={value} style={w.d ? { '--cw': w.d + 'px', '--dw': w.dot + 'px' } : undefined}>
-      <span ref={probe} className="probe" aria-hidden="true"><span>0</span><span>.</span></span>
+    <span className="digits roll" aria-label={value}>
+      <span ref={probe} className="probe" aria-hidden="true">{'0123456789.'.split('').map((c) => <span key={c}>{c}</span>)}</span>
       {items.map((it, i) => (
-        <span key={it.id} className={'col ' + it.state + (/\d/.test(it.ch) ? '' : ' dot')} style={{ '--d': /\d/.test(it.ch) ? it.ch : 0, '--delay': Math.max(0, n - 1 - i) * 30 + 'ms' }} aria-hidden="true">
+        <span key={it.id} className={'col ' + it.state} style={{ '--d': /\d/.test(it.ch) ? it.ch : 0, '--delay': Math.max(0, n - 1 - i) * 30 + 'ms', ...(w && w[it.ch] ? { '--cw': w[it.ch] + 'px' } : null) }} aria-hidden="true">
           {/\d/.test(it.ch)
             ? <span className="strip">{'0123456789'.split('').map((d) => <span key={d}>{d}</span>)}</span>
             : <span className="strip">{it.ch}</span>}
