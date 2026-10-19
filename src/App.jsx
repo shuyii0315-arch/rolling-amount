@@ -161,8 +161,13 @@ function RollingDigits({ value }) {
   const probe = useRef(null);
   const [w, setW] = useState({ d: 0, dot: 0 });
   useLayoutEffect(() => {
-    const [d, dot] = probe.current.children;
-    setW({ d: d.offsetWidth, dot: dot.offsetWidth }); // layout px, unaffected by the page's scale
+    // Layout px, unaffected by the page's scale. Measured again once web fonts finish loading,
+    // otherwise the columns keep the fallback font's (wider) digit width.
+    const measure = () => { const [d, dot] = probe.current.children; setW({ d: d.offsetWidth, dot: dot.offsetWidth }); };
+    measure();
+    document.fonts?.ready.then(measure);
+    document.fonts?.addEventListener('loadingdone', measure);
+    return () => document.fonts?.removeEventListener('loadingdone', measure);
   }, []);
   const n = items.filter((it) => it.state !== 'out').length;
   return (
